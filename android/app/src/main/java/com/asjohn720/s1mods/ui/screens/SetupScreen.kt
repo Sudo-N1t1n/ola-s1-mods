@@ -353,7 +353,7 @@ fun SetupScreen(manager: ScooterManager) {
                             .height(48.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentMint,
+                            containerColor = AccentCyan,
                             contentColor = BgDark
                         )
                     ) {
@@ -711,7 +711,7 @@ fun SetupScreen(manager: ScooterManager) {
                             manager.runFullSetup(selectedApps)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentMint, contentColor = BgDark),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = BgDark),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Install (${selectedApps.size})", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
@@ -765,7 +765,7 @@ fun SetupScreen(manager: ScooterManager) {
             confirmButton = {
                 Button(
                     onClick = { showCompletionDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentMint, contentColor = BgDark),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = BgDark),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Got It", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)

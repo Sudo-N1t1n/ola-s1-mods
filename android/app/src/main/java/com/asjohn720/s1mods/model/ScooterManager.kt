@@ -69,6 +69,14 @@ data class RamInfo(
     val freeMb: Int
 )
 
+data class DashboardUiSettings(
+    val currentDpi: Int = 200,
+    val fontScale: Float = 1.0f,
+    val animationScale: Float = 1.0f,
+    val isNightMode: Boolean = true,
+    val screenTimeoutMs: Int = 120000
+)
+
 /**
  * Minimal vehicle identity shown on the connect/setup card.
  * supported = MoveOS >= 4.0.5 (MoveOS 4.0.5+ and 5.x; older builds are not supported).
@@ -96,6 +104,9 @@ class ScooterManager(private val context: Context) {
 
     // Last read model + MoveOS, shared by the connect card and the Setup "My Scooter" card.
     val vehicleSummary = MutableStateFlow<VehicleSummary?>(null)
+
+    // Live Scooter Dashboard UI settings (DPI, Font Scale, Animations, Night Mode, Timeout)
+    val dashboardUi = MutableStateFlow(DashboardUiSettings())
 
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs = _logs.asStateFlow()
@@ -609,6 +620,190 @@ class ScooterManager(private val context: Context) {
         val info = ScooterInfo(uid = uid, androidVersion = android, buildId = build, model = model, scooterMode = mode)
         log("[+] Model: $model | MoveOS: $build | Android: $android | Root UID: $uid")
         info
+    }
+
+    /**
+     * Reads current display density, font scale, animation speed, and sleep timeout.
+     */
+    suspend fun fetchDashboardUiSettings(): DashboardUiSettings = withContext(Dispatchers.IO) {
+        log("[*] Reading live dashboard UI settings...")
+        try {
+            val client = ensureGrpc()
+            val (_, densityOut) = client.shell("wm density", 8L)
+            var dpi = 200
+            val overrideMatch = Regex("""Override density:\s*(\d+)""").find(densityOut)
+            val physicalMatch = Regex("""Physical density:\s*(\d+)""").find(densityOut)
+            if (overrideMatch != null) {
+                dpi = overrideMatch.groupValues[1].toIntOrNull() ?: 200
+            } else if (physicalMatch != null) {
+                dpi = physicalMatch.groupValues[1].toIntOrNull() ?: 200
+            }
+
+            val (_, fontOut) = client.shell("settings get system font_scale", 8L)
+            val font = fontOut.trim().toFloatOrNull() ?: 1.0f
+
+            val (_, animOut) = client.shell("settings get global window_animation_scale", 8L)
+            val anim = animOut.trim().toFloatOrNull() ?: 1.0f
+
+            val (_, nightOut) = client.shell("cmd uimode night", 8L)
+            val isNight = nightOut.contains("yes", ignoreCase = true)
+
+            val (_, timeoutOut) = client.shell("settings get system screen_off_timeout", 8L)
+            val timeout = timeoutOut.trim().toIntOrNull() ?: 120000
+
+            val settings = DashboardUiSettings(
+                currentDpi = dpi,
+                fontScale = font,
+                animationScale = anim,
+                isNightMode = isNight,
+                screenTimeoutMs = timeout
+            )
+            dashboardUi.value = settings
+            log("[+] Dashboard UI: ${dpi} DPI | Font: ${font}x | Animation: ${anim}x | Night: $isNight")
+            settings
+        } catch (e: Exception) {
+            log("[!] Could not read UI settings: ${e.message}")
+            dashboardUi.value
+        }
+    }
+
+    suspend fun applyDensity(dpi: Int): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Setting scooter dashboard density to ${dpi} DPI...")
+        try {
+            val client = ensureGrpc()
+            val (status, _) = client.shell("wm density $dpi", 10L)
+            val ok = status in 0..1
+            if (ok) {
+                dashboardUi.value = dashboardUi.value.copy(currentDpi = dpi)
+                log("[+] Dashboard density applied: ${dpi} DPI")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to set density: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun resetDensity(): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Resetting dashboard density to stock physical default...")
+        try {
+            val client = ensureGrpc()
+            val (status, _) = client.shell("wm density reset", 10L)
+            val ok = status in 0..1
+            if (ok) {
+                fetchDashboardUiSettings()
+                log("[+] Density reset to factory default.")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to reset density: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun applyFontScale(scale: Float): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Setting font scale to ${scale}x...")
+        try {
+            val client = ensureGrpc()
+            val (status, _) = client.shell("settings put system font_scale $scale", 10L)
+            val ok = status in 0..1
+            if (ok) {
+                dashboardUi.value = dashboardUi.value.copy(fontScale = scale)
+                log("[+] Font scale applied: ${scale}x")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to set font scale: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun applyAnimationScale(scale: Float): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Setting UI animation duration to ${scale}x...")
+        try {
+            val client = ensureGrpc()
+            val cmd = "settings put global window_animation_scale $scale; settings put global transition_animation_scale $scale; settings put global animator_duration_scale $scale"
+            val (status, _) = client.shell(cmd, 10L)
+            val ok = status in 0..1
+            if (ok) {
+                dashboardUi.value = dashboardUi.value.copy(animationScale = scale)
+                log("[+] Animation scale set to ${scale}x (smooth responsiveness)")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to set animation scale: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun applyNightMode(enabled: Boolean): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Setting night mode override to $enabled...")
+        try {
+            val client = ensureGrpc()
+            val (status, _) = client.shell("cmd uimode night ${if (enabled) "yes" else "no"}", 10L)
+            val ok = status in 0..1
+            if (ok) {
+                dashboardUi.value = dashboardUi.value.copy(isNightMode = enabled)
+                log("[+] Night mode override updated.")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to set night mode: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun applyScreenTimeout(timeoutMs: Int): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Setting screen timeout to ${timeoutMs / 1000}s...")
+        try {
+            val client = ensureGrpc()
+            val (status, _) = client.shell("settings put system screen_off_timeout $timeoutMs", 10L)
+            val ok = status in 0..1
+            if (ok) {
+                dashboardUi.value = dashboardUi.value.copy(screenTimeoutMs = timeoutMs)
+                log("[+] Screen timeout set to ${timeoutMs / 1000}s.")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to set screen timeout: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun restartHmi(): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Restarting speedometer HMI client (clearing stuck UI/animations)...")
+        try {
+            val client = ensureGrpc()
+            client.shell("am force-stop com.olaelectric.hmiclient", 10L)
+            val (status, _) = client.shell("am start -n com.olaelectric.hmiclient/.MainActivity", 15L)
+            client.shell("input keyevent 224", 5L)
+            val ok = status in 0..1
+            if (ok) {
+                log("[+] Speedometer HMI client restarted cleanly.")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to restart HMI: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun resetAllUiSettings(): Boolean = withContext(Dispatchers.IO) {
+        log("[*] Restoring all display settings to stock factory defaults...")
+        try {
+            val client = ensureGrpc()
+            val cmd = "wm density reset; settings put system font_scale 1.0; settings put global window_animation_scale 1.0; settings put global transition_animation_scale 1.0; settings put global animator_duration_scale 1.0; settings put system screen_off_timeout 120000; cmd uimode night no"
+            val (status, _) = client.shell(cmd, 15L)
+            val ok = status in 0..1
+            if (ok) {
+                fetchDashboardUiSettings()
+                log("[+] Factory display settings restored.")
+            }
+            ok
+        } catch (e: Exception) {
+            log("[!] Failed to reset UI settings: ${e.message}")
+            false
+        }
     }
 
     fun disconnect() {

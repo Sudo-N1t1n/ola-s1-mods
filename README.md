@@ -65,6 +65,18 @@ Works directly from an **Android Phone (No PC required)** or from any **Mac, Lin
 
 ---
 
+## 🎨 Dashboard Customization Studio (In Companion App)
+
+Tailor your scooter's 7" MoveOS touchscreen directly from your phone:
+* **Display Density (DPI Scaling):** Switch between Compact (175 DPI), Balanced (195 DPI), Stock (213 DPI), and Large (240 DPI).
+* **HMI Responsiveness (Animation Speed):** Set animations to `0.5x` or `0.0x` (Instant) to eliminate speedometer animation stutter and make the UI feel fast and responsive.
+* **Typography Scaling:** Adjust system text size (`0.85x`, `1.0x`, `1.15x`).
+* **Dark Mode Override:** Force dark themes across sideloaded apps.
+* **Display Timeout:** Customize sleep timers (1m, 2m, 5m, 10m).
+* **HMI Soft-Restart:** Clear frozen speedometer animations with one tap without rebooting the vehicle.
+
+---
+
 ## 🛠️ Handy CLI Commands (`ola.py`)
 
 You can run diagnostics and control your scooter display from any Mac, Linux, or Windows terminal:

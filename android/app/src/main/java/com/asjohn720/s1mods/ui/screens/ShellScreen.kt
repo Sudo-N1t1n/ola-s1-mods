@@ -201,7 +201,7 @@ fun ShellScreen(manager: ScooterManager) {
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentMint,
+                        focusedBorderColor = AccentCyan,
                         unfocusedBorderColor = CardBorder,
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary,
@@ -233,7 +233,7 @@ fun ShellScreen(manager: ScooterManager) {
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isRunning) SurfaceVariantDark else AccentMint)
+                        .background(if (isRunning) SurfaceVariantDark else AccentCyan)
                 ) {
                     if (isRunning) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), color = TextMuted, strokeWidth = 2.dp)

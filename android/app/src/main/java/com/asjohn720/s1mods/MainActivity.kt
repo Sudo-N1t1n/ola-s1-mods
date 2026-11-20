@@ -31,16 +31,18 @@ import androidx.compose.ui.unit.sp
 import com.asjohn720.s1mods.model.ScooterManager
 import com.asjohn720.s1mods.ui.screens.ConnectVehicleScreen
 import com.asjohn720.s1mods.ui.screens.CustomApkScreen
+import com.asjohn720.s1mods.ui.screens.DashboardStudioScreen
 import com.asjohn720.s1mods.ui.screens.SetupScreen
 import com.asjohn720.s1mods.ui.screens.ShellScreen
 import com.asjohn720.s1mods.ui.screens.ToolboxScreen
 import com.asjohn720.s1mods.ui.theme.*
 
 enum class AppTab(val title: String, val icon: ImageVector) {
-    SETUP("Setup", Icons.Default.Bolt),
-    TOOLBOX("Tools", Icons.Default.Dashboard),
+    SETUP("Cockpit", Icons.Default.Speed),
+    STUDIO("Studio", Icons.Default.Tune),
+    TOOLBOX("Tools", Icons.Default.Widgets),
     CUSTOM_APK("Apps", Icons.Default.Download),
-    TERMINAL("Shell", Icons.Default.Terminal)
+    TERMINAL("Terminal", Icons.Default.Terminal)
 }
 
 class MainActivity : ComponentActivity() {
@@ -125,25 +127,36 @@ fun MainAppScaffold(manager: ScooterManager) {
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(34.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(SurfaceVariantDark),
+                                    .background(SurfaceVariantDark)
+                                    .border(1.dp, CardBorder, RoundedCornerShape(8.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.ElectricScooter,
                                     contentDescription = null,
-                                    tint = TextPrimary,
+                                    tint = AccentCyan,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "S1Mods",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "S1Mods",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                val summary by manager.vehicleSummary.collectAsState()
+                                val modelLabel = summary?.model ?: if (isConnected) "MoveOS Connected" else "Cockpit Offline"
+                                Text(
+                                    text = modelLabel,
+                                    fontSize = 10.sp,
+                                    color = if (isConnected) AccentCyan else TextMuted,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     },
                     actions = {
@@ -151,13 +164,14 @@ fun MainAppScaffold(manager: ScooterManager) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(SurfaceVariantDark)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isConnected) AccentEmeraldSubtle else SurfaceVariantDark)
+                                .border(1.dp, if (isConnected) AccentEmerald.copy(alpha = 0.4f) else CardBorder, RoundedCornerShape(8.dp))
                                 .clickable {
                                     manager.disconnect()
                                     bypassConnectionGate = false
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -167,10 +181,10 @@ fun MainAppScaffold(manager: ScooterManager) {
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isConnected) "Connected" else "Offline",
+                                text = if (isConnected) "Online" else "Offline",
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isConnected) TextPrimary else TextMuted
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isConnected) AccentEmerald else TextMuted
                             )
                         }
 
@@ -223,11 +237,11 @@ fun MainAppScaffold(manager: ScooterManager) {
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = TextPrimary,
-                                selectedTextColor = TextPrimary,
+                                selectedIconColor = AccentCyan,
+                                selectedTextColor = AccentCyan,
                                 unselectedIconColor = TextMuted,
                                 unselectedTextColor = TextMuted,
-                                indicatorColor = AccentMintSubtle
+                                indicatorColor = AccentCyanSubtle
                             )
                         )
                     }
@@ -242,6 +256,7 @@ fun MainAppScaffold(manager: ScooterManager) {
             ) {
                 when (selectedTab) {
                     AppTab.SETUP -> SetupScreen(manager)
+                    AppTab.STUDIO -> DashboardStudioScreen(manager)
                     AppTab.TOOLBOX -> ToolboxScreen(manager)
                     AppTab.CUSTOM_APK -> CustomApkScreen(manager)
                     AppTab.TERMINAL -> ShellScreen(manager)

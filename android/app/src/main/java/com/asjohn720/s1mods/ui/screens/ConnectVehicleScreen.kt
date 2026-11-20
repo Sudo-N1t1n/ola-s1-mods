@@ -66,7 +66,7 @@ fun ConnectVehicleScreen(
             Icon(
                 Icons.Default.ElectricScooter,
                 contentDescription = null,
-                tint = TextPrimary,
+                tint = AccentCyan,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -113,7 +113,7 @@ fun ConnectVehicleScreen(
                     .fillMaxWidth()
                     .height(46.dp),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentMint, contentColor = BgDark)
+                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = BgDark)
             ) {
                 Text(
                     text = "Continue",

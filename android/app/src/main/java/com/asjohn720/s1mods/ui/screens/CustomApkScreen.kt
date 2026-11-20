@@ -148,13 +148,13 @@ fun CustomApkScreen(manager: ScooterManager) {
         val freeMb = ramInfo?.freeMb ?: 0
         val ramColor = when {
             ramInfo == null -> CardBorder
-            freeMb >= 200 -> AccentMint          // Green: >= 200 MB
-            freeMb >= 150 -> StatusWarning       // Orange: 150 - 200 MB
-            else -> StatusDanger                 // Red: < 150 MB
+            freeMb >= 200 -> AccentEmerald          // Green: >= 200 MB
+            freeMb >= 150 -> StatusWarning          // Orange: 150 - 200 MB
+            else -> StatusDanger                    // Red: < 150 MB
         }
         val ramBgColor = when {
             ramInfo == null -> SurfaceDark
-            freeMb >= 200 -> AccentMint.copy(alpha = 0.08f)
+            freeMb >= 200 -> AccentEmerald.copy(alpha = 0.08f)
             freeMb >= 150 -> StatusWarning.copy(alpha = 0.08f)
             else -> StatusDanger.copy(alpha = 0.08f)
         }

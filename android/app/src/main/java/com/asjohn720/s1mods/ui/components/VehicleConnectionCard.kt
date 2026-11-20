@@ -195,7 +195,7 @@ fun VehicleConnectionCard(
                             },
                             modifier = Modifier.fillMaxWidth().height(42.dp),
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentMint, contentColor = BgDark)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = BgDark)
                         ) {
                             Text("Connect", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             Spacer(modifier = Modifier.width(6.dp))
@@ -217,7 +217,7 @@ fun VehicleConnectionCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Primary action: Auto Scan — full width, white so it's the obvious tap.
+            // Primary action: Auto Scan — full width, cyan so it's the obvious tap.
             Button(
                 onClick = {
                     coroutineScope.launch {
@@ -247,7 +247,7 @@ fun VehicleConnectionCard(
                 modifier = Modifier.fillMaxWidth().height(46.dp),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentMint,
+                    containerColor = AccentCyan,
                     contentColor = BgDark,
                     disabledContainerColor = SurfaceHighlight,
                     disabledContentColor = TextMuted
