@@ -109,7 +109,7 @@ def _decode_response(buf: bytes):
 # connection
 # --------------------------------------------------------------------------
 
-def build_target(host: str, port: int, scope: int | None) -> str:
+def build_target(host: str, port: int, scope: int | str | None) -> str:
     h = host.strip()
     if h.lower().startswith("ipv6:"):
         h = h[5:].strip()
@@ -121,10 +121,13 @@ def build_target(host: str, port: int, scope: int | None) -> str:
         if h.lower().startswith("fe80") and "%" not in h:
             if scope is None:
                 raise SystemExit(
-                    "This is a link-local address. Add the interface number:\n"
-                    "  --ipv6 fe80::1234:5678:9abc:def0%6\n"
-                    "or  --scope 6\n"
-                    "On Windows, find it with: Get-NetNeighbor -AddressFamily IPv6")
+                    "This is a link-local address. Add the interface number or name:\n"
+                    "  --ipv6 fe80::1234:5678:9abc:def0%6 (or %en0 / %wlan0)\n"
+                    "or  --scope 6 (or --scope en0)\n"
+                    "Find interfaces:\n"
+                    "  macOS:   ndp -an\n"
+                    "  Linux:   ip -6 neigh show\n"
+                    "  Windows: netsh interface ipv6 show neighbors")
             h = f"{h}%{scope}"
         if "%" in h and "%25" not in h:
             h = h.replace("%", "%25")
@@ -295,8 +298,8 @@ def main(argv=None):
         epilog=__doc__)
     parser.add_argument("--ipv6", required=False, default=None,
                         help="scooter address, e.g. fe80::1%%6 or 2001:db8::1")
-    parser.add_argument("--scope", type=int, default=None,
-                        help="interface number for a link-local address")
+    parser.add_argument("--scope", default=None,
+                        help="interface number or name for a link-local address (e.g. 6, en0, wlan0)")
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--timeout", type=float, default=30.0,
                         help="command timeout in seconds (default 30)")
@@ -309,8 +312,8 @@ def main(argv=None):
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--ipv6", default=argparse.SUPPRESS,
                         help="scooter address, e.g. fe80::1%%6 or 2001:db8::1")
-    common.add_argument("--scope", type=int, default=argparse.SUPPRESS,
-                        help="interface number for a link-local address")
+    common.add_argument("--scope", default=argparse.SUPPRESS,
+                        help="interface number or name for a link-local address")
     common.add_argument("--port", type=int, default=argparse.SUPPRESS)
     common.add_argument("--timeout", type=float, default=argparse.SUPPRESS,
                         help="command timeout in seconds")
@@ -323,6 +326,8 @@ def main(argv=None):
 
     def add(name, **kw):
         return sub.add_parser(name, parents=[common], **kw)
+
+    add("discover", help="scan local Wi-Fi / hotspot network for Ola scooters")
 
     settings_p = add("settings", help="open Android Settings")
     settings_p.add_argument("--fresh", action="store_true",
@@ -370,6 +375,18 @@ def main(argv=None):
     pull_p.add_argument("local")
 
     args = parser.parse_args(argv)
+    if args.action == "discover":
+        import setup
+        found = setup.scan_for_scooter()
+        if found:
+            ip, scope = found
+            print(f"\n[+] Found Ola scooter at {ip} (Scope: {scope})")
+            print(f"    Connect: python ola.py info --ipv6 {ip} --scope {scope}")
+            return 0
+        else:
+            print("\n[-] No Ola scooter detected on local network.")
+            return 1
+
     if not getattr(args, "ipv6", None):
         parser.error("--ipv6 is required (before or after the action)")
 
